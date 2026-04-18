@@ -5,6 +5,11 @@
     import gsap from "gsap" //gsap库
 
     //startPage的mainTitle部分
+    // fullpage 状态
+    const currentSection = ref(0)
+    const isAnimating = ref(false)
+    const sections = ref([])
+
     const texts = [
   [
   { text: "printf", type: "function" },
@@ -113,8 +118,74 @@
     }
 
 
+    // 滚轮控制
+    function onWheel(e) {
+        if (isAnimating.value) return
+
+        if (e.deltaY > 0) {
+            goNext()
+        } else {
+            goPrev()
+        }
+    }
+
+    function goNext() {
+        if (currentSection.value >= sections.value.length - 1) return
+        switchTo(currentSection.value + 1)
+    }
+
+    function goPrev() {
+        if (currentSection.value <= 0) return
+        switchTo(currentSection.value - 1)
+    }
+
+    function switchTo(index) {
+        isAnimating.value = true
+
+        const prev = currentSection.value
+        const next = index
+
+        const prevEl = sections.value[prev]
+        const nextEl = sections.value[next]
+
+        gsap.to(prevEl, {
+            y: -100,
+            opacity: 0,
+            duration: 0.8,
+            ease: "power2.inOut"
+        })
+
+        gsap.fromTo(nextEl,
+            { y: 100, opacity: 0 },
+            {
+                y: 0,
+                opacity: 1,
+                duration: 0.8,
+                ease: "power2.inOut",
+                onComplete: () => {
+                    currentSection.value = next
+                    isAnimating.value = false
+                }
+            }
+        )
+    }
+
     //接下来写生命周期
     onMounted(async () => {
+        // 收集 section 元素
+        const sectionElements = document.querySelectorAll('section')
+        sections.value = Array.from(sectionElements)
+
+        // 设置初始位置：当前 section 在屏幕中央，其他 section 在下方隐藏
+        sections.value.forEach((el, idx) => {
+            if (idx === currentSection.value) {
+                gsap.set(el, { y: 0, opacity: 1 })
+            } else {
+                gsap.set(el, { y: 100, opacity: 0 })
+            }
+        })
+
+        // 原有的打字动画循环
         while (true) {
             const text = texts[currentIndex]
 
@@ -131,45 +202,62 @@
 
 
 <template>
-    <div class="startPage">
-        <!-- 起始模板 -->
-        
-        <div class="titleBlock">
-
-        <div class="mainTitle">
-            <span class="displayText">
-                <span v-for="(token, i) in displayTokens" :key="i" :class="token.type">
-                    {{ token.text }}
-                </span>
-            </span>
-            <span class="cursor">|</span>
-            <!-- 使用 displayTokens 渲染带高亮的 token，cursor 类控制光标闪动，“|”就是模拟出来的光标 -->
-
+    <div class="viewport" @wheel="onWheel">
+        <section ref="section0" class="startPage">
+            <!-- 起始模板 -->
+            <div class="titleBlock">
+                <div class="mainTitle">
+                    <span class="displayText">
+                        <span v-for="(token, i) in displayTokens" :key="i" :class="token.type">
+                            {{ token.text }}
+                        </span>
+                    </span>
+                    <span class="cursor">|</span>
+                    <!-- 使用 displayTokens 渲染带高亮的 token，cursor 类控制光标闪动，“|”就是模拟出来的光标 -->
+                </div>
+                <p class="subTitle">//念起成形 Turning ideas into reality.</p>
+            </div>
+        </section>
+        <section ref="section1" class="introPage">
             
-        </div>
-        <p class="subTitle">//念起成形 Turning ideas into reality.</p>
+            <div class="secondMainTitle">
+                <<span style="color:#60CEE2">OmaeKumiko529</span> <span style="color:#BA77FE">/</span>>
+                <p style="margin-top: 1%;">[
+                    <span class="string" style="font-family: Maplemono; font-size: 1vw;">
 
-        </div>
-        
-    </div>
-    
-    <div class="introPage">
-        +
-    </div>
+                        <span style="background-color: #da56a8;color: aquamarine; border-radius: 8px; padding: 2px 8px;">UI/UX</span> <span style="background-color: #245c74; border-radius: 8px; padding: 2px 8px;">&lt;/&gt;</span> <span style="background-color:white; color: black; border-radius: 8px; padding: 2px 8px;">𝄞</span>
+                        
+                    </span>
+                ]</p>
+            </div>
 
+        </section>
+    </div>
 </template>
 
 <style>
+    .viewport {
+        height: 100vh;
+        overflow: hidden;
+        position: relative;
+    }
+
     .startPage {
-        height: 100vh; /* 起始板块占满视口 */
+        height: 100vh;
         background-color: #121314;
-        position: relative
+        position: absolute;
+        width: 100%;
+        top: 0;
+        left: 0;
     }
 
     .introPage {
-        height: 100vh; /* 占满视口 */
-        background-color: #ffffff;
-        position: relative
+        height: 100vh;
+        background-color: #121314;
+        position: absolute;
+        width: 100%;
+        top: 0;
+        left: 0;
     }
 
     .titleBlock {
@@ -188,6 +276,21 @@
 
         margin: 0;
         line-height: 1.5;
+
+        top: 10%;
+        left: 10%;
+    }
+
+    .secondMainTitle {
+        font-size: 1.5vw;
+        font-family: MapleMono Bold;
+        color: rgb(255, 255, 255);
+
+        position: relative;
+        margin: 0;
+        line-height: 1.5;
+        text-align: center;
+        top: 5%;
     }
 
     .subTitle {
