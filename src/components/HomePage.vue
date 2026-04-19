@@ -3,6 +3,7 @@
 <script setup>
 import { ref, onMounted } from "vue"
 import gsap from "gsap" // gsap 动画库
+import Badge from './Badge.vue' //Badge库
 
 // ==================== 响应式状态 ====================
 /**
@@ -24,6 +25,11 @@ const wheelLock = ref(false)
  * 存储所有页面区域（section）的 DOM 元素数组
  */
 const sections = ref([])
+
+/**
+ * 光标元素引用
+ */
+const cursorElement = ref(null)
 
 /**
  * 打字动画显示的完整标题文本，每个标题由多个 token 组成
@@ -254,6 +260,17 @@ onMounted(async () => {
     })
   })
 
+  // 光标闪烁动画
+  if (cursorElement.value) {
+    gsap.to(cursorElement.value, {
+      duration: 0.5,
+      opacity: 0,
+      repeat: -1,
+      yoyo: true,
+      ease: "power1.inOut"
+    })
+  }
+
   // 无限打字动画循环
   while (true) {
     const text = texts[currentIndex]
@@ -279,7 +296,7 @@ onMounted(async () => {
               {{ token.text }}
             </span>
           </span>
-          <span class="cursor">|</span>
+          <span ref="cursorElement" class="cursor">|</span>
           <!-- 使用 displayTokens 渲染带高亮的 token，cursor 类控制光标闪动，“|”就是模拟出来的光标 -->
         </div>
         <p class="subTitle">//念起成形 Turning ideas into reality.</p>
@@ -308,6 +325,29 @@ onMounted(async () => {
         <div class="item">
           <p class="introTitle">//<span style="color: white;">软件开发</span></p>
           <p style="color:#60CEE2; margin-top: 8%;">了解C, Java, 掌握C#, C等面向对象语言。有使用Unity开发的经验。</p>
+        </div>
+      </div>
+
+      <p class="secondMainTitle">$ <span style="color: #d2f543;">project</span> <span style="color: white;">--list</span></p>
+
+      <div class="introduction">
+        <div class="item2">
+          <p class="introTitle">└── <span style="color: white;">Simple</span></p>
+          <div style="margin-top: 5%;">
+            <p>无轨下落式节奏类游戏</p>
+            <p>Unity, C#, JavaScript</p>
+            <p>负责游戏设计与游戏开发</p>
+          </div>
+        </div>
+        <div class="item2">
+          <p class="introTitle">└── <span style="color: white;">Simple</span></p>
+          <div style="margin-top: 5%;">
+            <p></p>
+          </div>
+        </div>
+        <div class="item2">
+          <p class="introTitle">└── <span style="color: white;">Simple</span></p>
+          <p>一款由Goose Egg Studio开发的无轨下落式节奏类游戏</p>
         </div>
       </div>
     </section>
@@ -344,6 +384,15 @@ onMounted(async () => {
   /* background: #f0f0f0; */
   padding: 20px;
   text-align: center;
+  border: 1px solid #ccc;
+  border-radius: 25px;
+}
+.item2 {
+  flex: 1;                 /* 让三个 div 平均分配宽度 */
+  /* 或者你想让它们宽度不一样，就写具体的 width */
+  /* background: #f0f0f0; */
+  padding: 20px;
+  text-align: left;
   border: 1px solid #ccc;
   border-radius: 25px;
 }
