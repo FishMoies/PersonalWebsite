@@ -8,6 +8,7 @@
     // fullpage 状态
     const currentSection = ref(0)
     const isAnimating = ref(false)
+    const wheelLock = ref(false)
     const sections = ref([])
 
     const texts = [
@@ -120,7 +121,10 @@
 
     // 滚轮控制
     function onWheel(e) {
-        if (isAnimating.value) return
+        if (wheelLock.value || isAnimating.value) return
+
+        wheelLock.value = true
+        setTimeout(() => wheelLock.value = false, 900)
 
         if (e.deltaY > 0) {
             goNext()
@@ -140,33 +144,40 @@
     }
 
     function switchTo(index) {
+        if (isAnimating.value) return
         isAnimating.value = true
 
-        const prev = currentSection.value
-        const next = index
+        const currentEl = sections.value[currentSection.value]
+        const nextEl = sections.value[index]
 
-        const prevEl = sections.value[prev]
-        const nextEl = sections.value[next]
+        const tl = gsap.timeline({
+            onComplete: () => {
+                currentSection.value = index
+                isAnimating.value = false
+            }
+        })
 
-        gsap.to(prevEl, {
-            y: -100,
-            opacity: 0,
-            duration: 0.8,
+        // 当前页退出
+        tl.to(currentEl, {
+            y: -80,
+            autoAlpha: 0,
+            duration: 0.6,
             ease: "power2.inOut"
         })
 
-        gsap.fromTo(nextEl,
-            { y: 100, opacity: 0 },
+        // 下一页进入
+        tl.fromTo(nextEl,
+            {
+                y: 80,
+                autoAlpha: 0
+            },
             {
                 y: 0,
-                opacity: 1,
-                duration: 0.8,
-                ease: "power2.inOut",
-                onComplete: () => {
-                    currentSection.value = next
-                    isAnimating.value = false
-                }
-            }
+                autoAlpha: 1,
+                duration: 0.6,
+                ease: "power2.inOut"
+            },
+            "<" // 和上一个动画重叠
         )
     }
 
@@ -176,13 +187,12 @@
         const sectionElements = document.querySelectorAll('section')
         sections.value = Array.from(sectionElements)
 
-        // 设置初始位置：当前 section 在屏幕中央，其他 section 在下方隐藏
+        // 设置初始位置：当前 section 可见，其他隐藏
         sections.value.forEach((el, idx) => {
-            if (idx === currentSection.value) {
-                gsap.set(el, { y: 0, opacity: 1 })
-            } else {
-                gsap.set(el, { y: 100, opacity: 0 })
-            }
+            gsap.set(el, {
+                autoAlpha: idx === currentSection.value ? 1 : 0,
+                y: idx === currentSection.value ? 0 : 80
+            })
         })
 
         // 原有的打字动画循环
@@ -242,22 +252,19 @@
         position: relative;
     }
 
-    .startPage {
-        height: 100vh;
-        background-color: #121314;
+    section {
         position: absolute;
+        inset: 0;
         width: 100%;
-        top: 0;
-        left: 0;
+        height: 100vh;
+    }
+
+    .startPage {
+        background-color: #121314;
     }
 
     .introPage {
-        height: 100vh;
         background-color: #121314;
-        position: absolute;
-        width: 100%;
-        top: 0;
-        left: 0;
     }
 
     .titleBlock {
@@ -276,9 +283,6 @@
 
         margin: 0;
         line-height: 1.5;
-
-        top: 10%;
-        left: 10%;
     }
 
     .secondMainTitle {
@@ -286,11 +290,9 @@
         font-family: MapleMono Bold;
         color: rgb(255, 255, 255);
 
-        position: relative;
-        margin: 0;
+        margin: 5% auto 0;
         line-height: 1.5;
         text-align: center;
-        top: 5%;
     }
 
     .subTitle {
