@@ -337,7 +337,7 @@ onMounted(async () => {
               Simple
               <Badge
                 text="TapTap"
-                href="https://www.taptap.cn/app/267034/all-info?platform=android"
+                href="https://www.taptap.cn/app/267034?os=android"
                 radius="none"
                 style="vertical-align: middle; color: white; background-color: #00d9c5;"
               />
