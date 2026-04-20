@@ -3,7 +3,7 @@
     v-if="href && !disabled"
     :href="href"
     class="badge"
-    :class="[variant, { 'icon-only': iconOnly }]"
+    :class="[variant, `radius-${radius}`, { 'icon-only': iconOnly }]"
     @click="handleClick"
     :target="external ? '_blank' : '_self'"
     :rel="external ? 'noopener noreferrer' : null"
@@ -15,7 +15,7 @@
   <button
     v-else
     class="badge"
-    :class="[variant, { 'icon-only': iconOnly }]"
+    :class="[variant, `radius-${radius}`, { 'icon-only': iconOnly }]"
     :disabled="disabled"
     type="button"
     @click="handleClick"
@@ -41,6 +41,14 @@ const props = defineProps({
     default: 'primary',
     validator(value) {
       return ['primary', 'accent', 'outline'].includes(value)
+    }
+  },
+  /** 圆角形状：sm / md / none / pill */
+  radius: {
+    type: String,
+    default: 'md',
+    validator(value) {
+      return ['sm', 'md', 'none', 'pill'].includes(value)
     }
   },
   /** 是否禁用 */
@@ -92,6 +100,21 @@ const handleClick = (event) => {
   position: relative;
   overflow: hidden;
   transform: translateY(0);
+}
+.badge.radius-none {
+  border-radius: 0;
+}
+
+.badge.radius-sm {
+  border-radius: 4px;
+}
+
+.badge.radius-md {
+  border-radius: 6px;
+}
+
+.badge.radius-pill {
+  border-radius: 999px;
 }
 
 .badge img {

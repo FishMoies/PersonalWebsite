@@ -332,21 +332,49 @@ onMounted(async () => {
 
       <div class="introduction">
         <div class="item2">
-          <p class="introTitle">└── <span style="color: white;">Simple</span></p>
-          <div style="margin-top: 5%;">
-            <p>无轨下落式节奏类游戏</p>
+          <p class="introTitle">├── 
+            <span style="color: white;">
+              Simple
+              <Badge
+                text="TapTap"
+                href="https://www.taptap.cn/app/267034/all-info?platform=android"
+                radius="none"
+                style="vertical-align: middle; color: white; background-color: #00d9c5;"
+              />
+            </span>
+          </p>
+            <div style="margin-top: 5%;">
+            <p>无轨下落式节奏类音乐游戏</p>
             <p>Unity, C#, JavaScript</p>
             <p>负责游戏设计与游戏开发</p>
+            
           </div>
         </div>
         <div class="item2">
-          <p class="introTitle">└── <span style="color: white;">Simple</span></p>
+          <p class="introTitle">├── 
+            <span style="color: white;">
+              多个已上线Vue实例
+              <Badge
+                text="GitHub"
+                href="https://github.com/FishMoies"
+                radius="none"
+                style="vertical-align: middle; color: white; background-color: #632c91;"
+              />
+            </span>
+          </p>
           <div style="margin-top: 5%;">
-            <p></p>
+            <p>使用Vue框架开发的多种类型的网站</p>
+            <p>HTML, CSS, JS, Supabase</p>
+            <p>交互设计、视觉传达与后端开发</p>
           </div>
         </div>
         <div class="item2">
-          <p class="introTitle">└── <span style="color: white;">Simple</span></p>
+          <p class="introTitle">└── 
+            <span style="color: white;">
+              Simple
+              
+            </span>
+          </p>
           <p>一款由Goose Egg Studio开发的无轨下落式节奏类游戏</p>
         </div>
       </div>
@@ -368,7 +396,7 @@ onMounted(async () => {
 .introduction {
   display: flex;           /* 让三个 div 并排 */
   justify-content: space-between;  /* 或者 space-around / center 看你想要的间距 */
-  gap: 20px;               /* 三个 div 之间的间距，超级好用 */
+  gap: -0.5px;               /* 三个 div 之间的间距，超级好用 */
   /* 如果想要占满一行，可以加 */
   width: 100%;
   margin-top: 2%;
@@ -385,7 +413,6 @@ onMounted(async () => {
   padding: 20px;
   text-align: center;
   border: 1px solid #ccc;
-  border-radius: 25px;
 }
 .item2 {
   flex: 1;                 /* 让三个 div 平均分配宽度 */
@@ -394,7 +421,6 @@ onMounted(async () => {
   padding: 20px;
   text-align: left;
   border: 1px solid #ccc;
-  border-radius: 25px;
 }
 
 section {
