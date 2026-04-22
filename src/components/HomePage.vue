@@ -371,11 +371,14 @@ onMounted(async () => {
         <div class="item2">
           <p class="introTitle">└── 
             <span style="color: white;">
-              Simple
-              
+              PCB领域声学设计
             </span>
           </p>
-          <p>一款由Goose Egg Studio开发的无轨下落式节奏类游戏</p>
+          <div style="margin-top: 5%;">
+            <p>参与嘉立创科创计划</p>
+            <p>Mentor PADS, Protel/AD</p>
+            <p>设计多种低成本电吉他效果器单块</p>
+          </div>
         </div>
       </div>
     </section>
