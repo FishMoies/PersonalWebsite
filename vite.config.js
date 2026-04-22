@@ -7,5 +7,5 @@ export default defineConfig({
   // 使用 Vue 插件
   plugins: [vue()],
   // 部署基础路径（用于 GitHub Pages）
-  base: '/PersonalWebsite/',
+  base: '/',
 })
