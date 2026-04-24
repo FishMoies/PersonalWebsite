@@ -1,7 +1,7 @@
 /* 主页 */
 
 <script setup>
-import { ref, onMounted } from "vue"
+import { ref, nextTick, onMounted } from "vue"
 import gsap from "gsap" // gsap 动画库
 import Badge from './Badge.vue' //Badge库
 
@@ -30,6 +30,47 @@ const sections = ref([])
  * 光标元素引用
  */
 const cursorElement = ref(null)
+
+/**
+ * 终端窗口引用（用于拖拽）
+ */
+const terminalRef = ref(null)
+
+/**
+ * 拖拽状态
+ */
+const isDragging = ref(false)
+let startX = 0
+let startY = 0
+let baseX = 0
+let baseY = 0
+
+/**
+ * 终端焦点状态
+ */
+const isTerminalActive = ref(false)
+
+/**
+ * 终端历史记录与当前输入
+ */
+const lines = ref([
+  { type: "output", text: "<span class=\"keyword\">[KUMIKO CMD]</span> 键入 <span class=\"method\">kumiko -help</span> 获取信息" },
+  { type: "output", text: "<span class=\"keyword\">[KUMIKO CMD]</span> Version <span class=\"string\">1.8.9</span>" }
+])
+const currentInput = ref("")
+
+/**
+ * 命令历史记录（用于 ↑ ↓ 导航）
+ */
+const history = ref([])
+
+/**
+ * 当前浏览的历史记录索引（-1 表示在最新输入位置）
+ */
+let historyIndex = -1
+
+/** 用于自动滚动到底部的容器引用 */
+const terminalBodyRef = ref(null)
 
 /**
  * 打字动画显示的完整标题文本，每个标题由多个 token 组成
@@ -162,6 +203,163 @@ function wait(seconds) {
   })
 }
 
+/**
+ * 获取鼠标归一化偏移（用于视差）
+ * @param {MouseEvent} e
+ * @returns {{ x: number, y: number }} 范围 [-0.5, 0.5]
+ */
+function getMouseOffset(e) {
+  return {
+    x: (e.clientX / window.innerWidth - 0.5),
+    y: (e.clientY / window.innerHeight - 0.5)
+  }
+}
+
+// ==================== 终端窗口拖拽逻辑 ====================
+
+/**
+ * 终端聚焦（点击终端任意位置均聚焦输入）
+ */
+function focusTerminal() {
+  isTerminalActive.value = true
+  terminalBodyRef.value?.focus()
+}
+
+/**
+ * 终端失焦
+ */
+function blurTerminal() {
+  isTerminalActive.value = false
+}
+
+/**
+ * 终端滚轮：智能判断边界，到达边界时允许穿透到页面滚动
+ */
+function handleTerminalWheel(e) {
+  const el = terminalBodyRef.value
+  if (!el) return
+
+  const atTop = el.scrollTop === 0
+  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight
+
+  if (
+    (e.deltaY < 0 && atTop) ||
+    (e.deltaY > 0 && atBottom)
+  ) {
+    // 到达边界，允许冒泡 → 触发页面滚动
+    return
+  }
+
+  // 未达边界，阻止冒泡 → 仅终端内部滚动
+  e.stopPropagation()
+}
+
+/**
+ * 鼠标按下：开始拖拽
+ */
+function onMouseDown(e) {
+  isDragging.value = true
+
+  startX = e.clientX - baseX
+  startY = e.clientY - baseY
+
+  // 强制聚焦终端输入区域
+  terminalBodyRef.value?.focus()
+
+  document.addEventListener("mousemove", onMouseMove)
+  document.addEventListener("mouseup", onMouseUp)
+}
+
+/**
+ * 鼠标移动：更新拖拽基础位置
+ * 视差偏移由 parallax 监听器叠加
+ */
+function onMouseMove(e) {
+  if (!isDragging.value) return
+
+  baseX = e.clientX - startX
+  baseY = e.clientY - startY
+}
+
+/**
+ * 鼠标松开：结束拖拽
+ */
+function onMouseUp() {
+  isDragging.value = false
+
+  document.removeEventListener("mousemove", onMouseMove)
+  document.removeEventListener("mouseup", onMouseUp)
+}
+
+// ==================== 终端命令行模拟 ====================
+
+/**
+ * 键盘输入处理
+ */
+function handleKey(e) {
+  if (e.key === "ArrowUp") {
+    e.preventDefault()
+    if (history.value.length === 0) return
+    historyIndex = Math.max(0, historyIndex === -1 ? history.value.length - 1 : historyIndex - 1)
+    currentInput.value = history.value[historyIndex] || ""
+  } else if (e.key === "ArrowDown") {
+    e.preventDefault()
+    if (history.value.length === 0) return
+    if (historyIndex === -1) return
+    historyIndex = Math.min(history.value.length, historyIndex + 1)
+    currentInput.value = historyIndex < history.value.length ? history.value[historyIndex] : ""
+  } else if (e.key === "Backspace") {
+    currentInput.value = currentInput.value.slice(0, -1)
+  } else if (e.key === "Enter") {
+    runCommand(currentInput.value)
+    currentInput.value = ""
+  } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    currentInput.value += e.key
+  }
+}
+
+/**
+ * 执行输入的命令
+ */
+function runCommand(cmd) {
+  // 记录输入
+  lines.value.push({ type: "input", text: cmd })
+
+  // 非空命令推入历史记录，并重置索引
+  if (cmd.trim() !== "") {
+    history.value.push(cmd)
+    historyIndex = -1
+  }
+
+  const trimmed = cmd.trim().toLowerCase()
+
+  if (trimmed === "") {
+    // 空命令不输出
+  } else if (trimmed === "kumiko -help") {
+    lines.value.push({ type: "output", text: "<span class=\"keyword\">[KUMIKO CMD]</span> 可用命令:" })
+    lines.value.push({ type: "output", text: "  <span class=\"method\">kumiko -help</span>     — 显示帮助信息" })
+    lines.value.push({ type: "output", text: "  <span class=\"method\">kumiko -version</span>  — 显示版本号" })
+    lines.value.push({ type: "output", text: "  <span class=\"method\">kumiko -contact</span>  — 显示联系方式" })
+    lines.value.push({ type: "output", text: "  <span class=\"method\">kumiko -clear</span>    — 清空终端" })
+  } else if (trimmed === "kumiko -version") {
+    lines.value.push({ type: "output", text: "<span class=\"keyword\">[KUMIKO CMD]</span> Version <span class=\"string\">1.8.9</span>" })
+  } else if (trimmed === "kumiko -contact") {
+    lines.value.push({ type: "output", text: "<span class=\"keyword\">[KUMIKO CMD]</span> 联系方式:" })
+    lines.value.push({ type: "output", text: "  Email: <span class=\"string\">xisiyao0529@gmail.com</span>" })
+  } else if (trimmed === "kumiko -clear") {
+    lines.value = []
+  } else {
+    lines.value.push({ type: "output", text: "<span class=\"errorText\">command not found</span>: " + cmd })
+  }
+
+  // 自动滚到底部
+  nextTick(() => {
+    if (terminalBodyRef.value) {
+      terminalBodyRef.value.scrollTop = terminalBodyRef.value.scrollHeight
+    }
+  })
+}
+
 // ==================== 页面滚动控制 ====================
 
 /**
@@ -169,6 +367,8 @@ function wait(seconds) {
  * @param {WheelEvent} e - 滚轮事件对象
  */
 function onWheel(e) {
+  // 终端激活时，滚轮事件由终端内部处理，不触发页面滚动
+  if (isTerminalActive.value) return
   if (wheelLock.value || isAnimating.value) return
 
   wheelLock.value = true
@@ -271,6 +471,76 @@ onMounted(async () => {
     })
   }
 
+  // 初始化终端窗口位置（居中）
+  if (terminalRef.value) {
+    const el = terminalRef.value
+    const x = window.innerWidth / 2 - el.offsetWidth / 2
+    const y = window.innerHeight / 2 - el.offsetHeight / 2
+
+    baseX = x
+    baseY = y
+
+    gsap.set(el, { x, y })
+  }
+
+  // 终端输入框自动获取焦点
+  if (terminalBodyRef.value) {
+    terminalBodyRef.value.focus()
+  }
+
+  // ==================== 鼠标视差动画（仅第三屏） ====================
+
+  /**
+   * 鼠标移动：分层视差偏移
+   */
+  document.addEventListener("mousemove", (e) => {
+    // 仅在第三屏生效
+    if (currentSection.value !== 2) return
+
+    const { x, y } = getMouseOffset(e)
+
+    // 🎯 背景层（慢，幅度小）
+    gsap.to(".contactPage", {
+      x: x * 10,
+      y: y * 10,
+      duration: 0.8,
+      ease: "power2.out"
+    })
+
+    // 🎯 终端窗口（中速，幅度中，叠加 3D 旋转）
+    gsap.to(terminalRef.value, {
+      x: baseX + x * 20,
+      y: baseY + y * 20,
+      rotationY: x * 5,
+      rotationX: -y * 5,
+      transformPerspective: 1000,
+      transformOrigin: "center",
+      duration: 0.5,
+      ease: "power2.out"
+    })
+  })
+
+  /**
+   * 鼠标离开页面 → 平滑复位
+   */
+  document.addEventListener("mouseleave", () => {
+    gsap.to(terminalRef.value, {
+      x: baseX,
+      y: baseY,
+      rotationX: 0,
+      rotationY: 0,
+      duration: 0.8,
+      ease: "power2.out"
+    })
+
+    gsap.to(".contactPage", {
+      x: 0,
+      y: 0,
+      duration: 0.8,
+      ease: "power2.out"
+    })
+  })
+
   // 无限打字动画循环
   while (true) {
     const text = texts[currentIndex]
@@ -332,7 +602,7 @@ onMounted(async () => {
 
       <div class="introduction">
         <div class="item2">
-          <p class="introTitle">├── 
+          <p class="introTitle">├──
             <span style="color: white;">
               Simple
               <Badge
@@ -351,7 +621,7 @@ onMounted(async () => {
           </div>
         </div>
         <div class="item2">
-          <p class="introTitle">├── 
+          <p class="introTitle">├──
             <span style="color: white;">
               多个已上线Vue实例
               <Badge
@@ -369,7 +639,7 @@ onMounted(async () => {
           </div>
         </div>
         <div class="item2">
-          <p class="introTitle">└── 
+          <p class="introTitle">└──
             <span style="color: white;">
               PCB领域声学设计
             </span>
@@ -378,6 +648,37 @@ onMounted(async () => {
             <p>参与嘉立创科创计划</p>
             <p>Mentor PADS, Protel/AD</p>
             <p>设计多种低成本电吉他效果器单块</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- 第三屏：联系方式 -->
+    <section ref="section2" class="contactPage">
+      <div ref="terminalRef" class="contactContainer" @mousedown="focusTerminal">
+        <!-- 终端标题栏 -->
+        <div class="terminalBar" @mousedown.stop="onMouseDown">
+          <span class="terminalDot redDot"></span>
+          <span class="terminalDot yellowDot"></span>
+          <span class="terminalDot greenDot"></span>
+          <span class="terminalTitle">contact.sh</span>
+        </div>
+
+        <!-- 终端内容（交互式命令行） -->
+        <div ref="terminalBodyRef" class="terminalBody" tabindex="0" @keydown="handleKey" @wheel="handleTerminalWheel" @focus="focusTerminal" @blur="blurTerminal">
+          <!-- 历史记录 -->
+          <div v-for="(line, i) in lines" :key="i" class="terminalLine">
+            <span v-if="line.type === 'input'" class="historicalInput">
+              <span class="prompt">[KUMIKO CMD]</span>
+              <span>{{ line.text }}</span>
+            </span>
+            <span v-else class="outputLine" v-html="line.text"></span>
+          </div>
+
+          <!-- 当前输入行 -->
+            <div class="terminalLine currentLine">
+              <span class="prompt">[KUMIKO CMD]</span>
+              <span class="inputText">{{ currentInput }}</span>
+            <span class="cursorBlock">_</span>
           </div>
         </div>
       </div>
@@ -540,4 +841,148 @@ section {
   z-index: -1;
 }
 
+/* ==================== 第三屏：联系方式 ==================== */
+
+.contactPage {
+  background-color: #121314;
+  position: relative;
+}
+
+.contactContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: none;
+  width: min(60vw, 800px);
+  border: 1px solid #333;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+/* 终端标题栏 */
+.terminalBar {
+  background: #1e1e1e;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #333;
+  cursor: move;
+  user-select: none;
+}
+
+.terminalDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.redDot {
+  background: #ff5f57;
+}
+
+.yellowDot {
+  background: #ffbd2e;
+}
+
+.greenDot {
+  background: #28c840;
+}
+
+.terminalTitle {
+  color: #888;
+  font-family: MapleMono;
+  font-size: 0.9vw;
+  margin-left: 8px;
+}
+
+.terminalLine {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.prompt {
+  color: #5fb857;
+  margin-right: 10px;
+  font-weight: bold;
+}
+
+.punctuation {
+  color: #d4d4d4;
+}
+
+.cursorBlock {
+  color: #5fb857;
+  animation: blinkCursor 1s step-end infinite;
+}
+
+@keyframes blinkCursor {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.method {
+  color: #dcdcaa;
+}
+
+/* 终端主体 - 可滚动 */
+.terminalBody {
+  background: #1a1a1e;
+  padding: 24px 28px;
+  font-family: MapleMono;
+  font-size: 1.1vw;
+  line-height: 2;
+  max-height: 55vh;
+  overflow-y: auto;
+  outline: none;
+  scroll-behavior: smooth;
+}
+
+.terminalBody:focus {
+  box-shadow: inset 0 0 0 1px rgba(95, 184, 87, 0.15);
+}
+
+.terminalBody::-webkit-scrollbar {
+  width: 6px;
+}
+
+.terminalBody::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.terminalBody::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
+
+/* 历史输入行 */
+.historicalInput {
+  color: #d4d4d4;
+}
+
+/* 输出行 */
+.outputLine {
+  color: #9cdcfe;
+  display: block;
+}
+
+/* 当前输入行 */
+.currentLine {
+  margin-top: 4px;
+}
+
+.inputText {
+  color: #d4d4d4;
+}
+
+/* 错误提示 */
+.errorText {
+  color: #f44747;
+}
 </style>
