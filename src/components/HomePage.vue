@@ -1,6 +1,7 @@
 /* 主页 */
 <script setup>
 import { ref, onMounted } from "vue"
+import { useRouter } from "vue-router"
 import gsap from "gsap"
 import Badge from "./Badge.vue"
 import ParticleNetwork from "./ParticleNetwork.vue"
@@ -9,15 +10,19 @@ import { useTypewriter } from "../composables/useTypewriter.js"
 import { useTerminal, getMouseOffset } from "../composables/useTerminal.js"
 import { usePageScroll } from "../composables/usePageScroll.js"
 
+// ==================== 路由 ====================
+const router = useRouter()
+
 // ==================== 打字机 ====================
 const { displayTokens, typeText, deleteText, wait } = useTypewriter()
 
 // ==================== 终端 ====================
 const {
   isTerminalActive, lines, currentInput, terminalBodyRef,
+  passwordMode,
   focusTerminal, blurTerminal, handleKey, handleTerminalWheel,
   showStartupBanner
-} = useTerminal()
+} = useTerminal({ onNavigate: (path) => router.push(path) })
 
 // ==================== 页面滚动 ====================
 const { currentSection, sections, onWheel, initSections } = usePageScroll()

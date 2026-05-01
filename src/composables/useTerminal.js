@@ -20,7 +20,38 @@ export function getMouseOffset(e) {
   }
 }
 
-export function useTerminal() {
+/**
+ * 计算字符串的 SHA-256 哈希（十六进制）
+ * @param {string} message
+ * @returns {Promise<string>}
+ */
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+/** 管理员密码的 SHA-256 哈希（明文为 'kumiko'） */
+const ADMIN_PASSWORD_HASH = '08eb66fc477c997e7dc61a430884286e8789bd751c2698591833c58bf6dea548'
+
+/**
+ * 是否为浏览器扩展等不可信环境（仅用于提示，不阻止访问）
+ * 如果 Web Crypto API 不可用，回退为简单比较
+ */
+async function verifyPassword(input) {
+  try {
+    const hash = await sha256(input)
+    return hash === ADMIN_PASSWORD_HASH
+  } catch {
+    // 降级：直接用简单比较（安全性降低，但保证可用性）
+    return input === 'kumiko'
+  }
+}
+
+export function useTerminal(options = {}) {
+  const { onNavigate } = options
+
   /** 终端焦点状态 */
   const isTerminalActive = ref(false)
 
@@ -41,6 +72,10 @@ export function useTerminal() {
 
   /** 临时存储 matrix 动画 interval ID */
   let matrixInterval = null
+
+  /** 密码输入模式 */
+  const passwordMode = ref(false)
+  let passwordCallback = null
 
   // ==================== 辅助方法 ====================
 
@@ -264,6 +299,30 @@ export function useTerminal() {
       stopMatrixRain()
       lines.value = []
     }
+    // admin - 管理员登录（密码验证）
+    else if (trimmed === "kumiko -admin" || trimmed === "admin") {
+      await typewriteOutput(`<span class="keyword">[KUMIKO CMD]</span> Admin authentication required.`)
+      await typewriteOutput(`<span class="keyword">[KUMIKO CMD]</span> Please enter password:`)
+      await startPasswordPrompt(async (password) => {
+        const isValid = await verifyPassword(password)
+        if (isValid) {
+          await typewriteOutput(`<span class="keyword">[KUMIKO CMD]</span> <span class="string">Authentication successful.</span>`)
+          await typewriteOutput(`<span class="keyword">[KUMIKO CMD]</span> Redirecting to admin panel...`)
+          if (onNavigate) {
+            setTimeout(() => onNavigate('/admin'), 600)
+          }
+        } else {
+          await typewriteOutput(`<span class="errorText">Authentication failed.</span> Access denied.`)
+        }
+      })
+    }
+    // blog - 公开博客页面
+    else if (trimmed === "kumiko -blog" || trimmed === "blog") {
+      await typewriteOutput(`<span class="keyword">[KUMIKO CMD]</span> Opening blog page...`)
+      if (onNavigate) {
+        setTimeout(() => onNavigate('/blog'), 400)
+      }
+    }
     // whoami
     else if (trimmed === "whoami") {
       await typewriteOutput(`<span class="string">OmaeKumiko529</span>`)
@@ -277,7 +336,8 @@ export function useTerminal() {
     else if (trimmed === "ls" || trimmed === "kumiko -ls") {
       await typewriteOutput(`<span class="variable">about/     contact/   projects/  skills/    social/</span>`)
       await typewriteOutput(`<span class="variable">banner/    date/      matrix/    neofetch/  repo/</span>`)
-      await typewriteOutput(`<span class="variable">quote/     help/      version/   clear/</span>`)
+      await typewriteOutput(`<span class="variable">quote/     help/      version/   clear/     admin/</span>`)
+      await typewriteOutput(`<span class="variable">blog/</span>`)
     }
     // pwd
     else if (trimmed === "pwd") {
@@ -302,15 +362,35 @@ export function useTerminal() {
     }
   }
 
+  // ==================== 密码输入 ====================
+
+  async function startPasswordPrompt(callback) {
+    passwordMode.value = true
+    passwordCallback = callback
+  }
+
+  async function handlePasswordSubmit(input) {
+    passwordMode.value = false
+    const cb = passwordCallback
+    passwordCallback = null
+    if (cb) {
+      // 在终端中回显为星号
+      lines.value.push({ type: "output", text: `<span class="plain">  ***</span>` })
+      scrollToBottom()
+      await cb(input)
+    }
+  }
+
   // ==================== 键盘处理 ====================
 
   function handleKey(e) {
     if (e.key === "Tab") {
-      handleTab(e)
+      if (!passwordMode.value) handleTab(e)
       return
     }
     if (e.key === "ArrowUp") {
       e.preventDefault()
+      if (passwordMode.value) return
       if (history.value.length === 0) return
       historyIndex = Math.max(0, historyIndex === -1 ? history.value.length - 1 : historyIndex - 1)
       currentInput.value = history.value[historyIndex] || ""
@@ -318,6 +398,7 @@ export function useTerminal() {
     }
     if (e.key === "ArrowDown") {
       e.preventDefault()
+      if (passwordMode.value) return
       if (history.value.length === 0) return
       if (historyIndex === -1) return
       historyIndex = Math.min(history.value.length, historyIndex + 1)
@@ -325,16 +406,29 @@ export function useTerminal() {
       return
     }
     if (e.key === "Enter") {
-      runCommand(currentInput.value)
-      currentInput.value = ""
+      if (passwordMode.value) {
+        const pwd = currentInput.value
+        currentInput.value = ""
+        handlePasswordSubmit(pwd)
+      } else {
+        runCommand(currentInput.value)
+        currentInput.value = ""
+      }
       return
     }
     if (e.key === "Backspace") {
       currentInput.value = currentInput.value.slice(0, -1)
       return
     }
-    // Ctrl+C: 终止矩阵代码雨
+    // Ctrl+C: 取消密码模式或终止矩阵代码雨
     if (e.ctrlKey && (e.key === "c" || e.key === "C")) {
+      if (passwordMode.value) {
+        passwordMode.value = false
+        passwordCallback = null
+        currentInput.value = ""
+        typewriteOutput(`<span class="keyword">[KUMIKO CMD]</span> <span class="string">^C</span> -- Password prompt cancelled.`)
+        return
+      }
       if (matrixInterval) {
         stopMatrixRain()
         typewriteOutput(`<span class="keyword">[KUMIKO CMD]</span> <span class="string">^C</span> -- Matrix terminated.`)
@@ -364,6 +458,8 @@ export function useTerminal() {
   // ==================== 命令执行 ====================
 
   async function runCommand(cmd) {
+    if (passwordMode.value) return
+
     lines.value.push({ type: "input", text: cmd })
 
     if (cmd.trim() !== "") {
@@ -395,6 +491,7 @@ export function useTerminal() {
     history,
     terminalBodyRef,
     matrixInterval,
+    passwordMode,
     focusTerminal,
     blurTerminal,
     handleKey,

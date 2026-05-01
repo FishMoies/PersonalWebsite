@@ -3,6 +3,7 @@
 import { createApp } from 'vue'
 import './style.css'
 import App from './App.vue'
+import router from './router'
 
 // 引入 GSAP 动画库及其 ScrollTrigger 插件
 import { ScrollTrigger } from "gsap/ScrollTrigger"
@@ -12,4 +13,4 @@ import gsap from "gsap"
 gsap.registerPlugin(ScrollTrigger)
 
 // 创建 Vue 应用实例并挂载到 #app 元素
-createApp(App).mount('#app')
+createApp(App).use(router).mount('#app')

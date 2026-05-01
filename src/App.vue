@@ -1,10 +1,10 @@
 <!-- 应用根组件 -->
 <script setup>
-// 引入主页组件
-import HomePage from './components/HomePage.vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 </script>
 
 <template>
-  <!-- 渲染主页 -->
-  <HomePage />
+  <router-view />
 </template>

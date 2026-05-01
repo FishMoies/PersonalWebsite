@@ -63,6 +63,8 @@ export const COMMANDS = [
   { cmd: 'kumiko -clear', short: 'clear', desc: 'clear terminal' },
   { cmd: 'kumiko -date', short: 'date', desc: 'show current date/time' },
   { cmd: 'kumiko -matrix', short: 'matrix', desc: 'matrix rain (experimental)' },
+  { cmd: 'kumiko -admin', short: 'admin', desc: 'login admin panel' },
+  { cmd: 'kumiko -blog', short: 'blog', desc: 'open blog page' },
 ]
 
 /** 所有短命令列表 */
