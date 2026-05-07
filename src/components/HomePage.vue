@@ -1,6 +1,5 @@
-/* 主页 */
 <script setup>
-import { ref, onMounted } from "vue"
+import { ref, onMounted, onUnmounted } from "vue"
 import { useRouter } from "vue-router"
 import gsap from "gsap"
 import Badge from "./Badge.vue"
@@ -58,6 +57,13 @@ function onMouseUp() {
 /** 当前显示第几句（0‑based） */
 let currentIndex = 0
 
+/** 动画循环是否继续 */
+let isLoopActive = true
+
+/** 视差事件处理函数（模块级作用域，便于卸载） */
+let handleParallaxMouseMove = null
+let handleParallaxMouseLeave = null
+
 // ==================== 生命周期 ====================
 onMounted(async () => {
   initSections()
@@ -87,8 +93,8 @@ onMounted(async () => {
   // 显示启动横幅
   await showStartupBanner()
 
-  // ========== 鼠标视差动画（仅第三屏） ==========
-  document.addEventListener("mousemove", (e) => {
+  // ========== 鼠标视差处理函数（保存引用以便卸载时移除） ==========
+  handleParallaxMouseMove = (e) => {
     if (currentSection.value !== 2) return
     const { x, y } = getMouseOffset(e)
 
@@ -104,9 +110,9 @@ onMounted(async () => {
       transformOrigin: "center",
       duration: 0.5, ease: "power2.out"
     })
-  })
+  }
 
-  document.addEventListener("mouseleave", () => {
+  handleParallaxMouseLeave = () => {
     gsap.to(terminalRef.value, {
       x: baseX, y: baseY,
       rotationX: 0, rotationY: 0,
@@ -116,10 +122,13 @@ onMounted(async () => {
       x: 0, y: 0,
       duration: 0.8, ease: "power2.out"
     })
-  })
+  }
+
+  document.addEventListener("mousemove", handleParallaxMouseMove)
+  document.addEventListener("mouseleave", handleParallaxMouseLeave)
 
   // ========== 无限打字动画循环 ==========
-  while (true) {
+  while (isLoopActive) {
     const text = texts[currentIndex]
     await typeText(text)
     await wait(3)
@@ -128,7 +137,22 @@ onMounted(async () => {
     currentIndex = (currentIndex + 1) % texts.length
   }
 })
+
+onUnmounted(() => {
+  // 停止动画循环
+  isLoopActive = false
+
+  // 移除视差事件监听
+  if (handleParallaxMouseMove) {
+    document.removeEventListener("mousemove", handleParallaxMouseMove)
+  }
+  if (handleParallaxMouseLeave) {
+    document.removeEventListener("mouseleave", handleParallaxMouseLeave)
+  }
+})
 </script>
+
+<!-- 主页 -->
 
 <template>
   <div class="viewport" @wheel="(e) => onWheel(e, isTerminalActive)">

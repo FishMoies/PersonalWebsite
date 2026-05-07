@@ -26,8 +26,6 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue'
-
 const props = defineProps({
   /** 标签文本，可选 */
   text: String,

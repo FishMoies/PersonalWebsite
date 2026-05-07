@@ -65,7 +65,8 @@ export function usePageScroll() {
    * @param {boolean} isTerminalActive - 终端是否激活（从外部传入）
    */
   function onWheel(e, isTerminalActive) {
-    if (isTerminalActive) return
+    // isTerminalActive 是一个 Vue ref 对象，需要取 .value
+    if (isTerminalActive?.value) return
     if (wheelLock.value || isAnimating.value) return
 
     wheelLock.value = true

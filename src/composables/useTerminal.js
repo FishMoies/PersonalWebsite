@@ -125,7 +125,7 @@ export function useTerminal(options = {}) {
 
   // ==================== Tab 补全 ====================
 
-  function handleTab(e) {
+  async function handleTab(e) {
     e.preventDefault()
     const input = currentInput.value.trim().toLowerCase()
     if (!input) return
@@ -136,12 +136,12 @@ export function useTerminal(options = {}) {
     if (matches.length === 1) {
       currentInput.value = matches[0]
     } else if (matches.length > 1) {
-      typewriteOutput(`<span class="keyword">[KUMIKO CMD]</span> possible matches:`)
-      matches.forEach(m => {
+      await typewriteOutput(`<span class="keyword">[KUMIKO CMD]</span> possible matches:`)
+      for (const m of matches) {
         const cmdObj = COMMANDS.find(c => c.cmd === m || c.short === m)
         const desc = cmdObj ? cmdObj.desc : ""
-        typewriteOutput(`  <span class="method">${m}</span> -- ${desc}`)
-      })
+        await typewriteOutput(`  <span class="method">${m}</span> -- ${desc}`)
+      }
     }
   }
 
