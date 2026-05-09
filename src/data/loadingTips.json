@@ -1,0 +1,34 @@
+[
+  {
+    "title": "念起成形",
+    "description": "一切始于一个念头，将想法转化为现实，让灵感在代码中成形。"
+  },
+  {
+    "title": "生来不羁",
+    "description": "拒绝平庸，追求卓越。每一行代码都是对创造力的致敬。"
+  },
+  {
+    "title": "MapleMono 字体",
+    "description": "本站使用 MapleMono 等宽字体，兼具美观与可读性，专为开发者设计。"
+  },
+  {
+    "title": "暗色模式",
+    "description": "本站支持系统级亮色/暗色模式自动切换，保护你的视力。"
+  },
+  {
+    "title": "Vue 3 + Vite",
+    "description": "基于 Vue 3 组合式 API 构建，使用 Vite 实现极速热更新开发体验。"
+  },
+  {
+    "title": "GSAP 动画",
+    "description": "集成了 GSAP 动画库，为你带来流畅细腻的滚动交互动效。"
+  },
+  {
+    "title": "持续优化",
+    "description": "每一次更新都在追求更好的体验，就像不断精炼的诗篇。"
+  },
+  {
+    "title": "由内而外",
+    "description": "真正的力量来自内心的秩序。代码如此，人生亦然。"
+  }
+]
