@@ -29,6 +29,7 @@ const { currentSection, sections, onWheel, initSections } = usePageScroll()
 // ==================== 光标 & 终端拖拽 ====================
 const cursorElement = ref(null)
 const terminalRef = ref(null)
+const portfolioLinkRef = ref(null)
 const isDragging = ref(false)
 let startX = 0, startY = 0, baseX = 0, baseY = 0
 
@@ -76,6 +77,72 @@ onMounted(async () => {
       repeat: -1,
       yoyo: true,
       ease: "power1.inOut"
+    })
+  }
+
+  // ========== 作品集链接：闲置脉冲 + 悬停震颤 ==========
+  let portfolioHoverTl = null
+
+  function startPortfolioIdlePulse() {
+    if (!portfolioLinkRef.value) return
+    gsap.to(portfolioLinkRef.value, {
+      duration: 0.6,
+      scale: 1.03,
+      x: 1.5,
+      textShadow: "0 0 12px rgba(210,245,67,0.7), 0 0 30px rgba(210,245,67,0.35)",
+      repeat: -1,
+      repeatDelay: 3.4,
+      yoyo: true,
+      ease: "elastic.out(1, 0.3)",
+      overwrite: true
+    })
+  }
+
+  startPortfolioIdlePulse()
+
+  if (portfolioLinkRef.value) {
+    portfolioLinkRef.value.addEventListener("mouseenter", () => {
+      gsap.killTweensOf(portfolioLinkRef.value)
+
+      portfolioHoverTl = gsap.timeline()
+
+      portfolioHoverTl.to(portfolioLinkRef.value, {
+        duration: 0.15,
+        scale: 1.06,
+        textShadow: "0 0 16px rgba(210,245,67,0.9), 0 0 40px rgba(210,245,67,0.6)",
+        borderColor: "rgba(210,245,67,0.8)",
+        backgroundColor: "rgba(210,245,67,0.18)",
+        ease: "power2.out"
+      })
+
+      portfolioHoverTl.to(portfolioLinkRef.value, {
+        duration: 0.08,
+        x: "+=2",
+        y: "+=1.5",
+        repeat: -1,
+        yoyo: true,
+        ease: "steps(4)"
+      }, "-=0.04")
+    })
+
+    portfolioLinkRef.value.addEventListener("mouseleave", () => {
+      if (portfolioHoverTl) {
+        portfolioHoverTl.kill()
+        portfolioHoverTl = null
+      }
+
+      gsap.to(portfolioLinkRef.value, {
+        duration: 0.25,
+        scale: 1,
+        x: 0,
+        y: 0,
+        textShadow: "0 0 8px rgba(210,245,67,0.5), 0 0 20px rgba(210,245,67,0.2)",
+        borderColor: "rgba(210,245,67,0.35)",
+        backgroundColor: "rgba(210,245,67,0.08)",
+        ease: "power2.out",
+        overwrite: true,
+        onComplete: startPortfolioIdlePulse
+      })
     })
   }
 
@@ -149,6 +216,9 @@ onUnmounted(() => {
   if (handleParallaxMouseLeave) {
     document.removeEventListener("mouseleave", handleParallaxMouseLeave)
   }
+
+  // 清理作品集链接动画
+  gsap.killTweensOf(portfolioLinkRef.value)
 })
 </script>
 
@@ -182,7 +252,7 @@ onUnmounted(() => {
 
       <div class="introduction">
         <div class="item">
-          <p class="introTitle"><!--<span style="color: white;">前端开发</span>--></p>
+          <p class="introTitle">&lt;!--<span style="color: white;">前端开发</span>--&gt;</p>
           <p style="color:#60CEE2; margin-top: 8%;">拥有开发前端技术的经验,熟练掌握HTML, CSS, JS和Vue框架开发</p>
         </div>
         <div class="item">
@@ -195,7 +265,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <p class="secondMainTitle">$ <span style="color: #d2f543;">project</span> <span style="color: white;">--list</span></p>
+      <p class="secondMainTitle">$ <span style="color: #d2f543;">project</span> <span style="color: white;">--list</span> <a ref="portfolioLinkRef" class="portfolio-link" href="https://www.microsoft.com/" target="_blank" rel="noopener noreferrer">#查看作品集</a></p>
 
       <div class="introduction">
         <div class="item2">
@@ -541,6 +611,25 @@ section {
 .link:hover {
   color: #8ae6ff;
   border-bottom-color: rgba(96, 206, 226, 0.8);
+}
+
+/* 作品集链接 — 霓虹脉冲按钮 */
+.portfolio-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 14px;
+  border: 1px solid rgba(210, 245, 67, 0.35);
+  border-radius: 4px;
+  background: rgba(210, 245, 67, 0.08);
+  color: #d2f543;
+  font-family: MapleMono;
+  font-size: inherit;
+  text-shadow: 0 0 8px rgba(210, 245, 67, 0.5), 0 0 20px rgba(210, 245, 67, 0.2);
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 .ascii-art {
