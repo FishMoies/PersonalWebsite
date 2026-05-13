@@ -1,0 +1,9 @@
+/* ==================== 共享 IDE 语法高亮颜色 tokens ==================== */
+.keyword  { color: #569CD6; }
+.variable { color: #9CDCFE; }
+.number   { color: #B5CEA8; }
+.plain    { color: #D4D4D4; }
+.string   { color: #CE9178; }
+.function { color: #DCDCAA; }
+.method   { color: #DCDCAA; }
+.punctuation { color: #D4D4D4; }

@@ -1,31 +1,11 @@
 <!-- 博客展示页 - 公开可见 -->
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useBlogPosts } from '../composables/useBlogPosts.js'
 
 const router = useRouter()
-const posts = ref([])
-const STORAGE_KEY = 'kumiko_blog_posts'
-
-function loadPosts() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    posts.value = raw ? JSON.parse(raw) : []
-  } catch {
-    posts.value = []
-  }
-}
-
-function formatTime(ts) {
-  const d = new Date(ts)
-  return d.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
+const { posts, loadPosts, formatTime } = useBlogPosts()
 
 function goHome() {
   router.push('/')
@@ -158,6 +138,4 @@ onMounted(loadPosts)
   word-break: break-word;
 }
 
-.function { color: #DCDCAA; }
-.plain    { color: #D4D4D4; }
 </style>

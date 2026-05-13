@@ -2,25 +2,12 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useBlogPosts } from '../composables/useBlogPosts.js'
 
 const router = useRouter()
 
 // ==================== 帖子数据 ====================
-const posts = ref([])
-const STORAGE_KEY = 'kumiko_blog_posts'
-
-function loadPosts() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    posts.value = raw ? JSON.parse(raw) : []
-  } catch {
-    posts.value = []
-  }
-}
-
-function savePosts() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(posts.value))
-}
+const { posts, loadPosts, savePosts, formatTime } = useBlogPosts()
 
 // ==================== 发帖表单 ====================
 const newPostContent = ref('')
@@ -45,17 +32,6 @@ function submitPost() {
 function deletePost(id) {
   posts.value = posts.value.filter(p => p.id !== id)
   savePosts()
-}
-
-function formatTime(ts) {
-  const d = new Date(ts)
-  return d.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 function goHome() {
@@ -356,11 +332,4 @@ onMounted(loadPosts)
   text-align: left;
 }
 
-/* 颜色 tokens（复用 HomePage 主题） */
-.keyword  { color: #569CD6; }
-.variable { color: #9CDCFE; }
-.number   { color: #B5CEA8; }
-.plain    { color: #D4D4D4; }
-.string   { color: #CE9178; }
-.function { color: #DCDCAA; }
 </style>

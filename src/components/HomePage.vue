@@ -12,6 +12,10 @@ import { usePageScroll } from "../composables/usePageScroll.js"
 // ==================== 路由 ====================
 const router = useRouter()
 
+function goToPortfolio() {
+  router.push('/portfolio')
+}
+
 // ==================== 打字机 ====================
 const { displayTokens, typeText, deleteText, wait } = useTypewriter()
 
@@ -265,7 +269,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <p class="secondMainTitle">$ <span style="color: #d2f543;">project</span> <span style="color: white;">--list</span> <a ref="portfolioLinkRef" class="portfolio-link" href="https://www.microsoft.com/" target="_blank" rel="noopener noreferrer">#查看作品集</a></p>
+      <p class="secondMainTitle">$ <span style="color: #d2f543;">project</span> <span style="color: white;">--list</span> <span ref="portfolioLinkRef" class="portfolio-link" @click.stop="goToPortfolio">#查看作品集</span></p>
 
       <div class="introduction">
         <div class="item2">
